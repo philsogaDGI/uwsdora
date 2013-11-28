@@ -109,6 +109,13 @@ function uwsdora_update_handles_batch_operation(&$context) {
           )
         ), 'success');
       }
+      db_update('uwsdora_handles')
+        ->fields(array(
+          'updated' => 1,
+        ))
+        ->condition('pid', $result->pid, '=')
+        ->condition('ds', $result->ds, '=')
+        ->execute();
     }
     else {
       // Oh no! Something broke, we should log it.
