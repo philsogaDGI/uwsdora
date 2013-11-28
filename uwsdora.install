@@ -1,0 +1,38 @@
+<?php
+/**
+ * @file
+ * Installs the handles database for UWS.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function uwsdora_schema() {
+  $schema['uwsdora_handles'] = array(
+    'fields' => array(
+      'handle' => array(
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ),
+      'pid' => array(
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ),
+      'ds' => array(
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ),
+      'updated' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('pid', 'ds'),
+  );
+  return $schema;
+}
