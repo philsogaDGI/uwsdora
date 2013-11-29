@@ -66,7 +66,7 @@ function uwsdora_update_handles_batch_operation(&$context) {
   if (!isset($sandbox['offset'])) {
     $sandbox['offset'] = 0;
     $sandbox['total'] = $total_results;
-    if ($sandbox['total'] === 0) {
+    if ($sandbox['total'] == 0) {
       return;
     }
   }
