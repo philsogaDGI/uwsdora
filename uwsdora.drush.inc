@@ -140,7 +140,7 @@ function uwsdora_create_object($repo, $pid, &$context) {
       $xml_doc = new DOMDocument();
       $xml_doc->loadXML($object[$marc_dsid]->content);
       $path_to_marc_to_mods_xsl_file = drupal_get_path('module', 'uwsdora') . '/transforms/MARC21slim2MODS3-4.xsl';
-      $mods_xml = uwsdora_transform($xml_doc, $path_to_marc_to_mods_xsl_file);
+      $mods_xml = uwsdora_transform($xml_doc, $context[$results]['marc_to_mods']);
 
       // Get the handle from the old DC datastream.
       $dc = new SimpleXMLElement($object['DC']->content);
@@ -181,7 +181,7 @@ function uwsdora_create_object($repo, $pid, &$context) {
       // Transforms MODS to DC.
       $xml_doc->loadXML($mods_xml);
       $path_to_mods_to_dc_xsl_file = drupal_get_path('module', 'uwsdora') . '/transforms/mods_to_dc.xsl';
-      $dc_xml = uwsdora_transform($xml_doc, $path_to_mods_to_dc_xsl_file);
+      $dc_xml = uwsdora_transform($xml_doc, $context[$results]['mods_to_dc']);
 
       // Get the title out of the MODS xml.
       $mods = new SimpleXMLElement($mods_xml);
@@ -254,7 +254,7 @@ function uwsdora_create_object($repo, $pid, &$context) {
       $xml_doc = new DOMDocument();
       $xml_doc->loadXML($object['DC']->content);
       $path_to_dc_to_mods_xsl_file = drupal_get_path('module', 'uwsdora') . '/transforms/DC_MODS3-4_XSLT1-0.xsl';
-      $mods_xml = uwsdora_transform($xml_doc, $path_to_dc_to_mods_xsl_file);
+      $mods_xml = uwsdora_transform($xml_doc, $context[$results]['dc_to_mods']);
 
       // Create identifier for mods.
       $xml_doc->loadXML($mods_xml);
@@ -559,6 +559,15 @@ EOQ;
 
     file_put_contents($uwsdora_migration_log, $message, FILE_APPEND);
   }
+  
+  $path_to_marc_to_mods_xsl_file = drupal_get_path('module', 'uwsdora') . '/transforms/MARC21slim2MODS3-4.xsl';
+  $context[$results]['marc_to_mods'] = uwsdora_get_transform($path_to_marc_to_mods_xsl_file);
+  
+  $path_to_mods_to_dc_xsl_file = drupal_get_path('module', 'uwsdora') . '/transforms/mods_to_dc.xsl';
+  $context[$results]['mods_to_dc'] = uwsdora_get_transform($path_to_mods_to_dc_xsl_file);
+  
+  $path_to_dc_to_mods_xsl_file = drupal_get_path('module', 'uwsdora') . '/transforms/DC_MODS3-4_XSLT1-0.xsl';
+  $context[$results]['dc_to_mods'] = uwsdora_get_transform($path_to_dc_to_mods_xsl_file);
 }
 
 /**
@@ -630,13 +639,31 @@ EOQ;
  *
  * @param DOMDocument $xml_doc
  *   The DOMDocument to transform.
+ * @param XSLTProcessor $xslt_proc
+ *   The stylesheet.
+ *
+ * @return string
+ *   returns transformed xml.
+ */
+function uwsdora_transform($xml_doc, $xslt_proc) {
+  // Transform xml.
+  $xml = $xslt_proc->transformToXML($xml_doc);
+
+  return $xml;
+}
+
+/**
+ * Transform Function.
+ *
+ * @param DOMDocument $xml_doc
+ *   The DOMDocument to transform.
  * @param string $path_to_xsl_file
  *   The path to the .xsl file.
  *
  * @return string
  *   returns transformed xml.
  */
-function uwsdora_transform($xml_doc, $path_to_xsl_file) {
+function uwsdora_get_transform($path_to_xsl_file) {
 
   $xsl_doc = new DOMDocument();
   $xsl_doc->load($path_to_xsl_file);
@@ -644,10 +671,8 @@ function uwsdora_transform($xml_doc, $path_to_xsl_file) {
   // Apply the stylesheet.
   $xslt_proc = new XSLTProcessor();
   $xslt_proc->importStylesheet($xsl_doc);
-  // Transform xml.
-  $xml = $xslt_proc->transformToXML($xml_doc);
 
-  return $xml;
+  return $xslt_proc;
 }
 
 /**
