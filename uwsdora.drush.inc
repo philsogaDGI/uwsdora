@@ -107,7 +107,7 @@ function uwsdora_migration_complete($success, $results, $operations) {
       '@count' => $results['success_count'],
     ));
 
-    file_put_contents('/tmp/uwsdora_migration_log.txt', $message, FILE_APPEND);
+    file_put_contents(drupal_realpath('public://uwsdora_migration_log.txt'), $message, FILE_APPEND);
   }
 }
 
@@ -324,7 +324,7 @@ function uwsdora_create_object($repo, $pid, &$context) {
           '@count' => $context['results']['success_count'],
         ));
 
-        file_put_contents('/tmp/uwsdora_migration_log.txt', $message, FILE_APPEND);
+        file_put_contents(drupal_realpath('public://uwsdora_migration_log.txt'), $message, FILE_APPEND);
 
       }
       catch (RepositoryException $e) {
