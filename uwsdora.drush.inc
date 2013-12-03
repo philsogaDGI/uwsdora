@@ -339,7 +339,7 @@ function uwsdora_create_object($repo, $pid, &$context) {
   }
   catch (Exception $e) {
     // Failed to import.
-    $message = t("@pid: \n", array(
+    $message = t("@pid \n", array(
       '@pid' => $pid,
     ));
 
