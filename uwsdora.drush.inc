@@ -729,5 +729,5 @@ function uwsdora_log_errors($message, $pid) {
     '@message' => $message,
   ));
 
-  file_put_contents('/tmp/uwsdora_migration_log.txt', $out, FILE_APPEND);
+  file_put_contents(drupal_realpath('public://uwsdora_migration_log.txt'), $out, FILE_APPEND);
 }
