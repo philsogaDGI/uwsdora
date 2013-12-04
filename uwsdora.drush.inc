@@ -121,6 +121,12 @@ function uwsdora_migration_complete($success, $results, $operations) {
  */
 function uwsdora_create_object($repo, $pid, &$context) {
   module_load_include('inc', 'islandora', 'includes/utilities');
+
+  drush_print(dt('Processing @pid @count/@total ', array(
+    '@pid' => $pid,
+    '@total' => count($context['results']['pids']),
+    '@count' => $context['results']['success_count'],)));
+
   try {
     if (!islandora_object_load($pid)) {
       // Get the old object from the remote fedora.
@@ -238,7 +244,6 @@ function uwsdora_create_object($repo, $pid, &$context) {
           if (count($matches) > 0) {
             uwsdora_log_handle($ds['dsAltID'], $pid, $dsid);
             $alt_id_found = TRUE;
-            break;
           }
         }
         // If not handle is found log it.
@@ -595,6 +600,7 @@ WHERE {
 EOQ;
 
   $results = $repo->repository->ri->sparqlQuery($query);
+
   $dsid_list = array();
   foreach ($results as $dsid) {
     $dsid_list[] = str_replace(array("$pid/"), array(), $dsid['dsid']['value']);
