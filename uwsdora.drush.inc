@@ -377,7 +377,7 @@ function uwsdora_determine_collection($marc_xml) {
     $marc->registerXPathNamespace('marc', 'http://www.loc.gov/MARC21/slim');
 
     // Get the value that determines the collection.
-    $field_type = $marc->xpath("//marc:record/marc:datafield[@tag='655' and @ind1='' and @ind2='7']/marc:subfield[@code='a']");
+    $field_type = $marc->xpath("//marc:record/marc:datafield[@tag='655' and @ind1=' ' and @ind2='7']/marc:subfield[@code='a']");
 
     // If there is a result that is returned then get the first element in the
     // array.
