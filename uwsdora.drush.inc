@@ -311,11 +311,17 @@ function uwsdora_create_object($repo, $pid, &$context) {
         // Merge all PDF files.
         $pdf_final_file_path = uwsdora_merge_pdfs($repo, $object, $pdf_list);
         // Create stub PDF datastream.
-        uwsdora_create_datastream($new_object, 'PDF', 'PDF Record', 'application/pdf', '');
-        // Set the content fo be the merged pdf file.
-        $new_object['PDF']->setContentFromFile($pdf_final_file_path);
-        // Delete the combined PDF file.
-        file_unmanaged_delete($pdf_final_file_path);
+        if ($pdf_final_file_path) {
+          uwsdora_create_datastream($new_object, 'PDF', 'PDF Record', 'application/pdf', '');
+          // Set the content fo be the merged pdf file.
+          $new_object['PDF']->setContentFromFile($pdf_final_file_path);
+          // Delete the combined PDF file.
+          file_unmanaged_delete($pdf_final_file_path);
+        }
+        else {
+          uwsdora_log_errors("Failed to merge PDF and create derivatives", $pid);
+        }
+
       }
 
       try {
@@ -334,7 +340,7 @@ function uwsdora_create_object($repo, $pid, &$context) {
       }
       catch (RepositoryException $e) {
         // Failed to import.
-        uwsdora_log_errors($e->getMessage(), $pid);
+        uwsdora_log_errors('Failed to ingest', $pid);
       }
     }
     else {
@@ -498,20 +504,15 @@ function uwsdora_merge_pdfs($repo, $object, $pdf_list) {
     // Array of file paths of the temp pdf files.
     $pdf_file_list = array();
 
-    $pdf_final_file_path = drupal_realpath("temporary://{$object->id}_FINAL.pdf");
-    $fp_final = fopen($pdf_final_file_path, 'w+');
-    file_put_contents($pdf_final_file_path, '');
-    fclose($fp_final);
+    $pdf_final_file_path = file_create_filename("{$object->id}_FINAL", file_directory_temp());
+
     // Iterate through all of the application/pdf dsids create temp files and
     // store content into files in the /tmp directory.
     foreach ($pdf_list as $dsid) {
 
-      $temp_file_path = drupal_realpath("temporary://{$object->id}_{$index}.pdf");
-      $fp = fopen($temp_file_path, 'w+');
-      file_put_contents($temp_file_path, $object[$dsid]->content);
-      fclose($fp);
+      $temp_file_path = file_create_filename("{$object->id}_{$dsid}", file_directory_temp());
+      $object[$dsid]->getContent($temp_file_path);
       $pdf_file_list[] = $temp_file_path;
-      $index++;
     }
 
     // Get the path of GhostScript.
@@ -526,15 +527,25 @@ function uwsdora_merge_pdfs($repo, $object, $pdf_list) {
         '@command' => $command,
         '!output' => implode('<br/>', $output),
       );
-      watchdog('uwsdora', 'GhostScript failed to combine PDFs.<br/>Error: @ret<br/>Command: @command <br/>Output !output', $variables, WATCHDOG_ERROR);
-    }
 
-    // Cleanup.  Removing all the temp files.
-    foreach ($pdf_file_list as $file_path) {
-      file_unmanaged_delete($file_path);
+      watchdog('uwsdora', 'GhostScript failed to combine PDFs.<br/>Error: @ret<br/>Command: @command <br/>Output !output', $variables, WATCHDOG_ERROR);
+
+      file_unmanaged_delete($pdf_final_file_path);
+      // Cleanup.  Removing all the temp files.
+      foreach ($pdf_file_list as $file_path) {
+        file_unmanaged_delete($file_path);
+      }
+      return;
+
     }
-    // Return the file merged pdf filepath.
-    return $pdf_final_file_path;
+    else {
+      // Cleanup.  Removing all the temp files.
+      foreach ($pdf_file_list as $file_path) {
+        file_unmanaged_delete($file_path);
+      }
+      // Return the file merged pdf filepath.
+      return $pdf_final_file_path;
+    }
   }
 }
 
