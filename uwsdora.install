@@ -1,5 +1,6 @@
 <?php
 
+
 /**
  * @file
  * Install hooks for the uwsdora module.
@@ -39,7 +40,7 @@ function uwsdora_schema() {
         'length' => 128,
         'not null' => TRUE,
       ),
-      'dsid' => array(
+      'ds' => array(
         'type' => 'varchar',
         'length' => 128,
         'not null' => TRUE,
@@ -51,7 +52,8 @@ function uwsdora_schema() {
         'default' => 0,
       ),
     ),
-    'primary key' => array('pid', 'dsid'),
+
+    'primary key' => array('pid', 'ds'),
   );
   return $schema;
 }
