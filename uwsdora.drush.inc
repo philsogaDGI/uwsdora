@@ -561,11 +561,12 @@ function uwsdora_merge_pdfs($repo, $object, $pdf_list) {
 function uwsdora_querie_remote_repo_for_pids($repo, &$context) {
 
   $query = <<<EOQ
-select ?pid from <#ri>
+select DISTINCT ?pid from <#ri>
 WHERE {
   ?pid <info:fedora/fedora-system:def/model#hasModel> <info:fedora/fedora-system:FedoraObject-3.0>
   FILTER(regex(str(?pid), "info:fedora/uws"))
 }
+ORDER BY ?pid
 EOQ;
 
   $context['results']['pids'] = $repo->repository->ri->sparqlQuery($query);
