@@ -955,6 +955,11 @@ function uwsdora_update_objects ($repo, $pid, $offset, &$context) {
 
 function uwsdora_check_pid($repo, $pid, $offset, $context) {
   
+  drush_print(dt('Processing @pid @count/@total ', array(
+    '@pid' => $pid,
+    '@total' => count($context['results']['pids']),
+    '@count' => $offset,)));
+  
   $ds = $repo->api->m->getDatastream($pid, 'PDF');
 
   if(isset($ds) && $ds['dsSize'] <=0){
