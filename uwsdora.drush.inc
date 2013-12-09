@@ -32,6 +32,14 @@ function uwsdora_drush_command() {
     ),
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN,
   );
+  
+  $commands['uws_batch_migration_update'] = array(
+    'description' => 'University of Western Sydney Migration',
+    'examples' => array(
+      'drush -u 1 uws_batch_migration_update',
+    ),
+    'bootstrap' => DRUSH_BOOTSTRAP_MAX,
+  );
 
   return $commands;
 
@@ -104,7 +112,7 @@ function uwsdora_process_pids($repo, $start_index, &$context) {
   $pid = $pids[$sandbox['offset']]['pid']['value'];
 
   // Create a new object.
-  uwsdora_create_object($repo, $pid, $context);
+  uwsdora_create_object($repo, $pid, $sandbox['offset'], $context);
 
   // Increment the sandbox offset.
   $sandbox['offset']++;
@@ -136,13 +144,13 @@ function uwsdora_migration_complete($success, $results, $operations) {
  * @param string $pid
  *   The pid of the object on the remote Fedora.
  */
-function uwsdora_create_object($repo, $pid, &$context) {
+function uwsdora_create_object($repo, $pid, $offset, &$context) {
   module_load_include('inc', 'islandora', 'includes/utilities');
 
   drush_print(dt('Processing @pid @count/@total ', array(
     '@pid' => $pid,
     '@total' => count($context['results']['pids']),
-    '@count' => $context['results']['success_count'],)));
+    '@count' => $offset,)));
 
   try {
     if (!islandora_object_load($pid)) {
@@ -873,4 +881,90 @@ function uwsdora_update_handles_batch_operation(&$context) {
   }
   $sandbox['offset'] += $handle_update;
   $context['finished'] = $sandbox['offset'] / $sandbox['total'];
+}
+
+/**
+ * UWS migration batch.
+ *
+ * The migration connects to a remote fedora and creates new objects on this
+ * Fedora.
+ */
+function drush_uwsdora_uws_batch_migration_update($start_index = 0) {
+
+  // Prompt user to enter the remote Fedora.
+  $source_fedora = drush_prompt('Enter an remote Fedora:', 'http://example:8080/fedora', TRUE);
+  // Create a user object.
+  $source_user = new stdClass();
+  $source_user->uid = -1;
+  // Prompt user to enter the username and passowrd of the remote fedora.
+  $source_user->name = drush_prompt('Enter an admin user on the remote Fedora:', 'user', TRUE);
+  $source_user->pass = drush_prompt('Enter the password for the admin user:', 'password', TRUE, TRUE);
+
+  // Create a IslandoraTuque object to be used by the migration.
+  $source = new IslandoraTuque($source_user, $source_fedora);
+
+  // Set up a batch operation.
+  // The batch will have two operations one to query for the pids and the other
+  // to iterate through all of the pids and create the new objects.
+  $batch = array(
+    'title' => 'Batching...',
+    'operations' => array(
+      array('uwsdora_querie_remote_repo_for_pids', array($source)),
+      array('uwsdora_update_objects', array($source, $start_index)),
+    ),
+    'finished' => 'uwsdora_migration_complete',
+  );
+
+  // Set the batch.
+  batch_set($batch);
+  // Process the batch process.
+  drush_backend_batch_process();
+
+}
+
+function uwsdora_update_objects ($repo, $pid, $offset, &$context) {
+ 
+  $pids = $context['results']['pids'];
+  $result = &$context['results'];
+
+  // Setup the sandbox if not already created.
+  $sandbox = &$context['sandbox'];
+  if (!isset($sandbox['offset'])) {
+    $context['results']['success_count'] = $start_index;
+    $sandbox['offset'] = $start_index;
+    $sandbox['total'] = count($pids);
+    if ($sandbox['total'] === 0) {
+      return;
+    }
+  }
+
+  // Get the pid of the sandbox offset.
+  $pid = $pids[$sandbox['offset']]['pid']['value'];
+
+  // Create a new object.
+  uwsdora_check_pid($repo, $pid, $sandbox['offset'], $context);
+
+  // Increment the sandbox offset.
+  $sandbox['offset']++;
+
+  // Check to see if the operation is completed.  It is completed when all of
+  // the pids are processed.
+  $context['finished'] = $sandbox['offset'] / $sandbox['total'];
+  
+}
+
+function uwsdora_check_pid($repo, $pid, $offset, $context) {
+  
+  $ds = $repo->api->m->getDatastream($pid, 'PDF');
+
+  if(isset($ds) && $ds['dsSize'] <=0){
+    
+    // Failed to import.
+    $message = t("@pid \n", array(
+      '@pid' => $pid,
+    ));
+
+    file_put_contents(drupal_realpath("public://uwsdora_migration_failed_pids.txt"), $message, FILE_APPEND);
+  }
+  
 }
