@@ -922,7 +922,7 @@ function drush_uwsdora_uws_batch_migration_update($start_index = 0) {
 
 }
 
-function uwsdora_update_objects ($repo, $pid, $offset, &$context) {
+function uwsdora_update_objects ($repo, $start_index, &$context) {
  
   $pids = $context['results']['pids'];
   $result = &$context['results'];
